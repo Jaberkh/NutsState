@@ -1,3 +1,5 @@
+# nixpacks.toml
+
 [phases.setup]
 nixPkgs = ['nodejs', 'coreutils']
 
@@ -6,3 +8,6 @@ cmds = [
   "npm install --legacy-peer-deps",
   "npm run build"
 ]
+
+[start]
+cmd = "npm run start"
