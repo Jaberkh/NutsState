@@ -5,7 +5,6 @@
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { Metadata } from "next";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
 import { signIn, signOut, getCsrfToken } from "next-auth/react";
 import sdk, { SignIn as SignInCore } from "@farcaster/frame-sdk";
 import { useAccount } from "wagmi";
@@ -133,9 +132,10 @@ export const metadata: Metadata = {
   },
 };
 
-export default function TipsStats() {
+export default function Demo(
+  { title }: { title?: string } = { title: "Farcaster Tips Stats Demo" }
+) {
   const { isSDKLoaded, context, notificationDetails } = useFrame();
-  const [sendNotificationResult, setSendNotificationResult] = useState("");
   const { isConnected } = useAccount();
   const [userData, setUserData] = useState<NeynarUser | null>(null);
   const [tipStats, setTipStats] = useState<TipStats>({
@@ -158,9 +158,10 @@ export default function TipsStats() {
   const [leaderboardData, setLeaderboardData] = useState<
     { fid: number; username: string; rank: number; allTimePeanutCount: number }[]
   >([]);
+  const [sendNotificationResult, setSendNotificationResult] = useState(""); // تعریف برای رفع خطاهای TypeScript
 
-  const searchParams = useSearchParams();
-  const targetFid = searchParams.get("fid")?.toString() || context?.user?.fid?.toString();
+  // استفاده مستقیم از context.user.fid
+  const targetFid = context?.user?.fid?.toString();
 
   const walletAddress = useMemo(
     () => userData?.verifications?.[0] || userData?.custody_address || "0x0",
@@ -173,7 +174,7 @@ export default function TipsStats() {
 
     const fetchAllData = async () => {
       if (!targetFid) {
-        setError("No FID provided");
+        setError("No FID available. Please sign in with Farcaster.");
         setLoading(false);
         return;
       }
@@ -544,19 +545,19 @@ export default function TipsStats() {
         const db = new Database(
           "sqlitecloud://cntihai1nk.g4.sqlite.cloud:8860/nft_holders.db?apikey=GEKHc2AnfNuuZQvBjekbuOP7QHlFWPHSHPChPKswA4c"
         );
-    
+
         const newNFTHolders: NFTHolder[] = await db.sql`SELECT * FROM holders_new_nft;`;
         const nftHolders: NFTHolder[] = await db.sql`SELECT * FROM holders_nft;`;
-    
+
         let allowance = 0;
         let memberType = "Not Active";
-    
+
         // بررسی همه آدرس‌های تأییدشده
         const wallets = userData?.verifications || [];
         if (userData?.custody_address && !wallets.includes(userData.custody_address)) {
           wallets.push(userData.custody_address);
         }
-    
+
         for (const wallet of wallets) {
           const newNFTData = newNFTHolders.find(
             (holder) => holder.wallet.toLowerCase() === wallet.toLowerCase()
@@ -564,7 +565,7 @@ export default function TipsStats() {
           const nftData = nftHolders.find(
             (holder) => holder.wallet.toLowerCase() === wallet.toLowerCase()
           );
-    
+
           if (newNFTData) {
             allowance += (newNFTData.count || 0) * 30;
             memberType = memberType === "OG" ? "Hero" : "Active";
@@ -574,13 +575,13 @@ export default function TipsStats() {
             memberType = memberType === "Active" ? "Hero" : "OG";
           }
         }
-    
+
         const finalAllowance = allowance > 0 ? allowance : "Mint your allowance";
         if (!wallets.length) {
           console.error("[SQLite NFT Error] No valid wallet addresses available");
           memberType = "Not Active";
         }
-    
+
         console.log("[SQLite NFT] Allowance:", finalAllowance, "Member Type:", memberType);
         setTipStats((prev) => ({
           ...prev,
@@ -618,11 +619,11 @@ export default function TipsStats() {
 
         const leaderboardData = rows
           .filter((row: DuneRow) => row.fid && Number(row.fid))
-         .map((row: DuneRow) => ({
-         fid: Number(row.fid),
-         username: usernameMap[Number(row.fid)] || `user${row.fid}`,
-        rank: (row.rank || 0) - 1, 
-        allTimePeanutCount: row.all_time_peanut_count || 0,
+          .map((row: DuneRow) => ({
+            fid: Number(row.fid),
+            username: usernameMap[Number(row.fid)] || `user${row.fid}`,
+            rank: (row.rank || 0) - 1,
+            allTimePeanutCount: row.all_time_peanut_count || 0,
           }));
 
         console.log("[SQLite] Leaderboard data:", leaderboardData);
@@ -870,6 +871,7 @@ export default function TipsStats() {
           href="https://fonts.googleapis.com/css2?family=Chicle&family=Poetsen+One&family=Poiret+One&family=Quicksand:wght@300..700&family=Rubik+Dirt&family=Rubik+Moonrocks&family=Winky+Sans:ital,wght@0,300..900;1,300..900&family=Yrsa:ital,wght@0,300..700;1,300..700&display=swap"
           rel="stylesheet"
         />
+        <h1 className="text-2xl font-bold text-center mb-4 text-[#f5c542]">{title}</h1>
         <div className="relative w-full h-[150px] mb-10">
           <div className="absolute top-[17px] left-[6px] w-[117px] h-[117px] rounded-full overflow-hidden transition-transform border-4 border-white">
             {userData?.pfp_url ? (
@@ -978,7 +980,7 @@ export default function TipsStats() {
             },
             {
               title: "Member Type",
-              value: "Active",
+              value: tipStats.memberType,
               minimal: true,
               color: "text-[#432818]",
               offsetX: -200,
@@ -1178,7 +1180,7 @@ export default function TipsStats() {
                 <h2 className="text-xl font-bold text-[#f5c542]">Leaderboard</h2>
                 <button
                   onClick={() => setIsLeaderboardModalOpen(false)}
-                  className="text-[#f5c542] hover9186 hover:text-[#ff6f61] transition-colors duration-200"
+                  className="text-[#f5c542] hover:text-[#ff6f61] transition-colors duration-200"
                 >
                   ✕
                 </button>
